@@ -48,7 +48,7 @@ if __name__ == '__main__':
     prepare_tools(root)
     PyInstaller.__main__.run([
         '--noconfirm', '--clean', '--onefile', '--windowed',
-        '--name', 'YouTubeDownloader', '--collect-all', 'yt_dlp',
+        '--name', 'SkyTubeDownloader', '--collect-all', 'yt_dlp',
         '--collect-all', 'yt_dlp_ejs',
         '--add-binary', str(root / 'tools' / 'ffmpeg.exe') + ';tools',
         '--add-binary', str(root / 'tools' / 'deno.exe') + ';tools',
@@ -59,4 +59,4 @@ if __name__ == '__main__':
         '--workpath', str(root / 'build'), '--specpath', str(root / 'build'),
         str(root / 'app.py'),
     ])
-    print('Ready:', root / 'dist' / 'YouTubeDownloader.exe')
+    print('Ready:', root / 'dist' / 'SkyTubeDownloader.exe')
