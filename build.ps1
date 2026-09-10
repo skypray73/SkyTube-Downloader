@@ -7,4 +7,4 @@ if ($LASTEXITCODE -ne 0) { throw 'Unable to create Python environment' }
 if ($LASTEXITCODE -ne 0) { throw 'Dependency installation failed' }
 & .\.venv\Scripts\python.exe build.py
 if ($LASTEXITCODE -ne 0) { throw 'Packaging failed' }
-Write-Host 'Ready: dist\YouTubeDownloader.exe (single-file build)'
+Write-Host 'Ready: dist\SkyTubeDownloader.exe (single-file build)'
