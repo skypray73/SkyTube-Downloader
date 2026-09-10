@@ -17,7 +17,7 @@ def prepare_tk():
         archives = sorted(root.glob(stem + '*.zip'))
         if archives:
             archive = archives[-1]
-            target = Path(tempfile.gettempdir()) / 'YouTubeDownloader-Tk' / archive.stem
+            target = Path(tempfile.gettempdir()) / 'SkyTubeDownloader-Tk' / archive.stem
             if not (target / folder / ('init.tcl' if stem == 'libtcl' else 'tk.tcl')).exists():
                 with zipfile.ZipFile(archive) as bundle:
                     bundle.extractall(target)
