@@ -1,4 +1,4 @@
-## YouTube Downloader v1.1.0
+## SkyTube Downloader v1.2.0
 
 第一個公開 Windows 版本。單一 EXE 已內嵌 yt-dlp、FFmpeg 與 Deno，不需要另外安裝 Python 或外掛工具。
 
@@ -15,7 +15,7 @@
 
 ### 下載
 
-一般使用者下載 `YouTubeDownloader.exe` 即可。也可下載 `YouTubeDownloader-Windows.zip`，其中包含 EXE、SHA-256、README 與授權文件。
+一般使用者下載 `SkyTubeDownloader.exe` 即可。也可下載 Windows 壓縮檔，其中包含 EXE、SHA-256、README 與授權文件。
 
 Windows SmartScreen 可能因程式尚未簽署而顯示警告。請從本專案 Release 下載並核對 SHA-256。
 

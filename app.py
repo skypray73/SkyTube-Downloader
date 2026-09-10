@@ -40,7 +40,7 @@ def binary(name):
 class App(tk.Tk):
     def __init__(self):
         super().__init__()
-        text='SkyTube Downloader'
+        self.title('SkyTube Downloader · Skypray Huang')
         self.geometry('850x850')
         self.minsize(760, 760)
         self.events = queue.Queue()
@@ -55,7 +55,7 @@ class App(tk.Tk):
         main = ttk.Frame(self, padding=20)
         main.pack(fill='both', expand=True)
         main.columnconfigure(1, weight=1)
-        ttk.Label(main, text='YouTube Downloader', font=('Segoe UI', 22, 'bold')).grid(row=0, column=0, columnspan=3, sticky='w')
+        ttk.Label(main, text='SkyTube Downloader', font=('Segoe UI', 22, 'bold')).grid(row=0, column=0, columnspan=3, sticky='w')
         ttk.Label(main, text='單一 EXE 本機版 • 內含 FFmpeg、Deno 與 yt-dlp • 下載需要網路').grid(row=1, column=0, columnspan=3, sticky='w', pady=(0, 16))
         self.url = self.field(main, 2, '影片連結', '')
         self.playlist = tk.BooleanVar()
@@ -144,12 +144,12 @@ class App(tk.Tk):
         self.log.insert('end', line + '\n')
         if int(self.log.index('end-1c').split('.')[0]) > 1500:
             self.log.delete('1.0', '300.0')
-        self.log.see('end')self.title('SkyTube Downloader · Skypray Huang')
+        self.log.see('end')
         self.log.configure(state='disabled')
 
     def download(self):
         if self.busy:
-                    self.title('SkyTube Downloader · Skypray Huang')
+            return
         try:
             ffmpeg = binary('ffmpeg')
             deno = binary('deno')
