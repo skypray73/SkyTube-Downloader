@@ -40,7 +40,7 @@ def binary(name):
 class App(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title('YouTube Downloader · Skypray Huang')
+        text='SkyTube Downloader'
         self.geometry('850x850')
         self.minsize(760, 760)
         self.events = queue.Queue()
@@ -144,7 +144,7 @@ class App(tk.Tk):
         self.log.insert('end', line + '\n')
         if int(self.log.index('end-1c').split('.')[0]) > 1500:
             self.log.delete('1.0', '300.0')
-        self.log.see('end')
+        self.log.see('end')self.title('SkyTube Downloader · Skypray Huang')
         self.log.configure(state='disabled')
 
     def download(self):
