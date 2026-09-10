@@ -149,7 +149,7 @@ class App(tk.Tk):
 
     def download(self):
         if self.busy:
-            return
+                    self.title('SkyTube Downloader · Skypray Huang')
         try:
             ffmpeg = binary('ffmpeg')
             deno = binary('deno')
