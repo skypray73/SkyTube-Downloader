@@ -2,6 +2,8 @@
 
 由 Skypray Huang 製作的 Windows 本機 GUI。支援單支影片與播放清單、解析度選擇、MP3／AAC 音訊，以及精準時間裁切。正式版將 yt-dlp、FFmpeg 與 Deno 封裝在單一 EXE，不需要 Python、Docker、API Key 或外掛資料夾。
 
+![SkyTube Downloader 主畫面](docs/skytube-downloader-preview.png)
+
 > 下載功能需要網路。請只下載你擁有權利或已取得許可的內容，並遵守來源平台條款及所在地法律。
 
 ## 功能
