@@ -1,5 +1,6 @@
 from pathlib import Path
 import importlib.metadata
+import hashlib
 import shutil
 import subprocess
 import PyInstaller.__main__
@@ -47,16 +48,27 @@ if __name__ == '__main__':
     root = Path(__file__).resolve().parent
     prepare_tools(root)
     PyInstaller.__main__.run([
-        '--noconfirm', '--clean', '--onefile', '--windowed',
+        '--noconfirm', '--clean', '--onedir', '--windowed',
         '--name', 'SkyTubeDownloader', '--collect-all', 'yt_dlp',
         '--collect-all', 'yt_dlp_ejs',
-        '--add-binary', str(root / 'tools' / 'ffmpeg.exe') + ';tools',
-        '--add-binary', str(root / 'tools' / 'deno.exe') + ';tools',
-        '--add-data', str(root / 'tools' / 'licenses') + ';tools/licenses',
-        '--add-data', str(root / 'tools' / 'VERSIONS.txt') + ';tools',
         '--version-file', str(root / 'version_info.txt'),
         '--distpath', str(root / 'dist'),
         '--workpath', str(root / 'build'), '--specpath', str(root / 'build'),
         str(root / 'app.py'),
     ])
-    print('Ready:', root / 'dist' / 'SkyTubeDownloader.exe')
+    portable = root / 'dist' / 'SkyTubeDownloader'
+    # Keep large tools outside both the EXE and PyInstaller's runtime folder.
+    shutil.copytree(root / 'tools', portable / 'tools', dirs_exist_ok=True)
+    for name in ('README.md', 'LICENSE', 'COPYRIGHT', 'THIRD_PARTY_NOTICES.md'):
+        shutil.copy2(root / name, portable / name)
+    shutil.copytree(root / 'licenses', portable / 'licenses', dirs_exist_ok=True)
+    (portable / '使用說明.txt').write_text(
+        '請先完整解壓縮 ZIP，再執行 SkyTubeDownloader.exe。\n'
+        '請保留同層的 _internal、tools 和授權文件；不要只複製主程式 EXE。\n',
+        encoding='utf-8')
+    archive = Path(shutil.make_archive(str(root / 'dist' / 'SkyTubeDownloader-Portable'),
+                                      'zip', root / 'dist', portable.name))
+    digest = hashlib.sha256(archive.read_bytes()).hexdigest()
+    archive.with_suffix('.zip.sha256').write_text(
+        digest + '  ' + archive.name + '\n', encoding='ascii')
+    print('Ready:', archive)

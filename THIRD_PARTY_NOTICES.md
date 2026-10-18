@@ -1,6 +1,6 @@
 # Third-party notices
 
-Release 版會將下列工具封裝於單一 EXE，執行時由 PyInstaller 解壓至系統暫存目錄。它們不是本專案作者自行開發的元件。
+Portable 版將 FFmpeg、Deno 獨立存放於 tools，Python 與 yt-dlp 依賴存放於 _internal，和主程式一起壓成 ZIP。它們不是本專案作者自行開發的元件。
 
 ## FFmpeg
 
@@ -36,6 +36,6 @@ Release 版會將下列工具封裝於單一 EXE，執行時由 PyInstaller 解�
 
 - 建置版本：6.22.2
 - 專案：https://pyinstaller.org/
-- 用途：建立 Windows 單一執行檔
+- 用途：建立 Windows onedir 資料夾式可攜程式
 
-每次建置會在 `tools/VERSIONS.txt` 記錄實際工具版本，並將版本與授權資料嵌入 EXE。
+每次建置會在 `tools/VERSIONS.txt` 記錄實際工具版本，並將版本與授權資料放入 Portable ZIP 的 tools 目錄。

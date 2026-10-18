@@ -1,6 +1,6 @@
 # SkyTube Downloader
 
-由 Skypray Huang 製作的 Windows 本機 GUI。支援單支影片與播放清單、解析度選擇、MP3／AAC 音訊，以及精準時間裁切。正式版將 yt-dlp、FFmpeg 與 Deno 封裝在單一 EXE，不需要 Python、Docker、API Key 或外掛資料夾。
+由 Skypray Huang 製作的 Windows 本機 GUI。支援單支影片與播放清單、解析度選擇、MP3／AAC 音訊，以及精準時間裁切。Portable 版將主程式、Python 執行環境、FFmpeg 與 Deno 分開存放，壓成同一份 ZIP，不需要安裝 Python、Docker 或 API Key。
 
 ![SkyTube Downloader 主畫面](docs/skytube-downloader-preview.png)
 
@@ -21,7 +21,7 @@
 
 ## 下載 Windows 版
 
-前往 [Releases](../../releases/latest) 下載 `SkyTubeDownloader.exe`。這是約 100 MB 的單一執行檔，內含：
+Portable 建置產生 `SkyTubeDownloader-Portable.zip`，完整解壓縮後執行其中的 `SkyTubeDownloader.exe`。依賴獨立存放，包含：
 
 - FFmpeg 7.1
 - Deno 2.9.6
@@ -31,7 +31,7 @@ Windows SmartScreen 可能會對沒有程式碼簽章的新應用顯示警告。
 
 ## 使用方式
 
-1. 執行 `SkyTubeDownloader.exe`。
+1. 完整解壓縮 Portable ZIP，執行資料夾中的 `SkyTubeDownloader.exe`；請保留 `_internal` 和 `tools`。
 2. 貼上影片或播放清單網址。
 3. 若要下載整個播放清單，勾選播放清單選項。
 4. 選擇解析度與輸出格式。
@@ -60,9 +60,9 @@ python -m venv .venv
 .\.venv\Scripts\python.exe app.py
 ```
 
-第一次執行 `build.py` 會從已安裝的 Python 套件取出 FFmpeg 和 Deno，建立本機 `tools` 目錄，再產生 `dist\SkyTubeDownloader.exe`。
+第一次執行 `build.py` 會從已安裝的 Python 套件取出 FFmpeg 和 Deno，建立本機 `tools` 目錄，再產生 `dist\SkyTubeDownloader-Portable.zip` 與 SHA-256 校驗檔。
 
-## 建置單一 EXE
+## 建置 Portable ZIP
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\build.ps1
@@ -71,10 +71,16 @@ powershell -ExecutionPolicy Bypass -File .\build.ps1
 建置結果：
 
 ```text
-dist\SkyTubeDownloader.exe
+dist\SkyTubeDownloader-Portable.zip
+dist\SkyTubeDownloader\
+  SkyTubeDownloader.exe
+  _internal\            # Python、Tcl/Tk、yt-dlp 與相關 DLL
+  tools\ffmpeg.exe
+  tools\deno.exe
+  tools\licenses\
 ```
 
-GitHub Actions 也會在 Windows runner 執行測試、建置 EXE、產生 SHA-256，並上傳建置產物。推送 `v*` tag 時會自動建立 GitHub Release。
+主程式使用 PyInstaller onedir 模式，啟動時不再解壓整包依賴到暫存目錄。請散布完整 ZIP，不要只複製 EXE。防毒軟體仍可能掃描外部檔案，實際啟動時間依系統而異。
 
 ## 測試
 
@@ -91,5 +97,5 @@ GitHub Actions 也會在 Windows runner 執行測試、建置 EXE、產生 SHA-2
 YouTube 是 Google LLC 的商標。本專案與 YouTube 無關，也未獲其背書。
 
 製作人：Skypray Huang  
-版本：1.2.0  
-最新日期：2026/9/10
+版本：1.2.1  
+最新日期：2026/10/18
