@@ -104,5 +104,5 @@ dist\SkyTubeDownloader\
 YouTube 是 Google LLC 的商標。本專案與 YouTube 無關，也未獲其背書。
 
 製作人：Skypray Huang<br>
-版本：1.3.0<br>
+版本：1.3.1<br>
 最新日期：2026/11/06

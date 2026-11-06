@@ -2,6 +2,15 @@
 
 所有重要變更都記錄在此文件。本專案版本採用 Semantic Versioning。
 
+## [1.3.1] - 2026-11-06
+
+### Fixed
+
+- 修正打包版遺漏建置用 Python SSL 模組要求的資料檔，導致 HTTPS 連線出現 FileNotFoundError
+- 保留原有 TLS 憑證及主機名稱驗證
+- 建置後實際啟動打包版建立 TLS context 並載入 CA 憑證；失敗時停止打包
+- 加入 SSL 資料檔收集及打包版 TLS 回歸測試
+
 ## [1.3.0] - 2026-11-06
 
 ### Added

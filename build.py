@@ -3,8 +3,23 @@ import importlib.metadata
 import hashlib
 import shutil
 import subprocess
+import tempfile
 import PyInstaller.__main__
 from tk_runtime import prepare_tk
+from runtime_support import ssl_data_files
+
+
+def verify_packaged_runtime(portable):
+    """Fail the build if the shipped executable cannot initialize verified TLS."""
+    with tempfile.TemporaryDirectory(prefix='skytube-runtime-') as temp:
+        log = Path(temp) / 'runtime.log'
+        result = subprocess.run([
+            str(portable / 'SkyTubeDownloader.exe'), '--worker', str(log),
+            '--check-runtime'], timeout=60, capture_output=True)
+        message = log.read_text(encoding='utf-8') if log.exists() else ''
+        if result.returncode or 'RUNTIME_OK:' not in message:
+            raise RuntimeError('Packaged HTTPS runtime check failed:\n' + message)
+        print(message.strip())
 
 
 def prepare_tools(root):
@@ -47,6 +62,9 @@ if __name__ == '__main__':
     prepare_tk()
     root = Path(__file__).resolve().parent
     prepare_tools(root)
+    data_args = []
+    for source, destination in ssl_data_files():
+        data_args += ['--add-data', source + ':' + destination]
     PyInstaller.__main__.run([
         '--noconfirm', '--clean', '--onedir', '--windowed',
         '--name', 'SkyTubeDownloader', '--collect-all', 'yt_dlp',
@@ -54,9 +72,10 @@ if __name__ == '__main__':
         '--version-file', str(root / 'version_info.txt'),
         '--distpath', str(root / 'dist'),
         '--workpath', str(root / 'build'), '--specpath', str(root / 'build'),
-        str(root / 'app.py'),
+        *data_args, str(root / 'app.py'),
     ])
     portable = root / 'dist' / 'SkyTubeDownloader'
+    verify_packaged_runtime(portable)
     # Keep large tools outside both the EXE and PyInstaller's runtime folder.
     shutil.copytree(root / 'tools', portable / 'tools', dirs_exist_ok=True)
     for name in ('README.md', 'LICENSE', 'COPYRIGHT', 'THIRD_PARTY_NOTICES.md'):

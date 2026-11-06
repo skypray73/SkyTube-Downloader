@@ -15,6 +15,10 @@ if '--worker' in sys.argv:
     worker_index = sys.argv.index('--worker')
     sys.stdout = open(sys.argv[worker_index + 1], 'w', encoding='utf-8', buffering=1)
     sys.stderr = sys.stdout
+    if sys.argv[worker_index + 2:] == ['--check-runtime']:
+        from runtime_support import check_ssl_runtime
+        print(f'RUNTIME_OK: verified TLS context; {check_ssl_runtime()} CA certificates')
+        raise SystemExit(0)
     import yt_dlp
     yt_dlp.main(sys.argv[worker_index + 2:])
     raise SystemExit
@@ -92,7 +96,7 @@ class App(tk.Tk):
         self.log = ScrolledText(main, height=10, wrap='word', font=('Consolas', 10), state='disabled')
         self.log.grid(row=18, column=0, columnspan=3, sticky='nsew')
         main.rowconfigure(18, weight=1)
-        ttk.Label(main, text='製作人：Skypray Huang  •  v1.3.0  •  2026/11/06', foreground='#666666').grid(row=19, column=0, columnspan=3, sticky='e', pady=(8, 0))
+        ttk.Label(main, text='製作人：Skypray Huang  •  v1.3.1  •  2026/11/06', foreground='#666666').grid(row=19, column=0, columnspan=3, sticky='e', pady=(8, 0))
         self.after(100, self.poll)
 
     def field(self, frame, row, label, default, picker=None):
