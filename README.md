@@ -1,6 +1,6 @@
 # SkyTube Downloader
 
-由 Skypray Huang 製作的 Windows 本機 GUI。支援單支影片與播放清單、解析度選擇、MP3／AAC 音訊，以及精準時間裁切。Portable 版將主程式、Python 執行環境、FFmpeg 與 Deno 分開存放，壓成同一份 ZIP，不需要安裝 Python、Docker 或 API Key。
+由 Skypray Huang 製作的 Windows 本機 GUI。支援多連結批次下載、完整播放清單、解析度選擇、MP3／AAC 音訊，以及精準時間裁切。Portable 版將主程式、Python 執行環境、FFmpeg 與 Deno 分開存放，壓成同一份 ZIP，不需要安裝 Python、Docker 或 API Key。
 
 ![SkyTube Downloader 主畫面](docs/skytube-downloader-preview.png)
 
@@ -8,8 +8,11 @@
 
 ## 功能
 
-- 貼上 YouTube 或 youtu.be HTTPS 連結
-- 下載單支影片或完整播放清單
+- 一次貼上多個 YouTube 或 youtu.be HTTPS 連結，每行一個，也支援空白分隔
+- 混合下載單支影片與多份完整播放清單，依輸入順序逐一處理
+- 自動移除完全相同的重複連結；無效連結在開始前顯示位置
+- 播放清單依名稱分資料夾、依影片順序編號
+- 個別影片／連結失敗後繼續，結束時顯示成功連結、未完整成功連結及檔案數
 - 選擇 480p、720p、1080p、2160p 或最高畫質
 - 下載影片＋最佳音訊、MP3，或保留可用的 AAC／M4A
 - 以 HH／MM／SS 數字框設定開始與結束時間
@@ -21,7 +24,7 @@
 
 ## 下載 Windows 版
 
-Portable 建置產生 `SkyTubeDownloader-Portable.zip`，完整解壓縮後執行其中的 `SkyTubeDownloader.exe`。依賴獨立存放，包含：
+從 [最新 Release](https://github.com/skypray73/SkyTube-Downloader/releases/latest) 下載 `SkyTubeDownloader-Portable.zip`，完整解壓縮後執行其中的 `SkyTubeDownloader.exe`。依賴獨立存放，包含：
 
 - FFmpeg 7.1
 - Deno 2.9.6
@@ -32,13 +35,17 @@ Windows SmartScreen 可能會對沒有程式碼簽章的新應用顯示警告。
 ## 使用方式
 
 1. 完整解壓縮 Portable ZIP，執行資料夾中的 `SkyTubeDownloader.exe`；請保留 `_internal` 和 `tools`。
-2. 貼上影片或播放清單網址。
-3. 若要下載整個播放清單，勾選播放清單選項。
+2. 在多行欄位貼上影片或播放清單網址，每行一個，可混合多個影片與播放清單。
+3. 「下載整個播放清單」預設勾選，帶有 `list=` 的影片網址也會下載整份清單。只要目前影片時，取消勾選；純播放清單網址則必須勾選。
 4. 選擇解析度與輸出格式。
 5. 如需裁切，在開始或結束時間輸入 HH、MM、SS；裁切會自動啟用。
 6. 按下「開始下載」。
 
-只填開始時間表示下載到片尾；只填結束時間表示從影片開頭下載。播放清單模式會將同一裁切範圍套用至每部影片。
+只填開始時間表示下載到片尾；只填結束時間表示從影片開頭下載。相同的畫質、輸出類型、Cookie 和裁切設定會套用至本批次每部影片。
+
+各連結依序處理，播放清單影片存入清單資料夾並加上順序編號，單支影片直接存入儲存資料夾。重複移除只針對完全相同的輸入網址；不同網址或不同清單包含同一影片時仍各自處理。
+
+進度列顯示目前影音串流的百分比，狀態列顯示第幾個連結及目前影片。遇到私人、已刪除或下載失敗的影片會繼續處理其他影片／連結；只要一個清單有失敗項目，該連結就列為「未完整成功」，已成功的檔案仍會保留。按「取消」會停止目前下載及後續佇列，已完成的檔案保留。
 
 影片以 MKV 保存，以容納來源提供的最佳影音編碼。最高畫質可能使用 AV1 或 VP9，需要相容播放器。AAC 模式會優先保存來源 AAC／M4A；沒有 AAC 時預設失敗，只有勾選允許轉碼後才將其他音訊重新編碼為 AAC。
 
@@ -88,7 +95,7 @@ dist\SkyTubeDownloader\
 .\.venv\Scripts\python.exe -m unittest discover -v
 ```
 
-測試涵蓋解析度選擇、AAC 回退、時間裁切、播放清單、網址驗證及 Cookie 優先順序。網路下載是否成功仍取決於影片、帳號、網路與平台當時的限制。
+測試涵蓋解析度選擇、AAC 回退、時間裁切、多連結解析與去重、播放清單路徑、部分失敗後繼續、批次取消、網址驗證及 Cookie 優先順序。網路下載是否成功仍取決於影片、帳號、網路與平台當時的限制。
 
 ## 授權
 
@@ -96,6 +103,6 @@ dist\SkyTubeDownloader\
 
 YouTube 是 Google LLC 的商標。本專案與 YouTube 無關，也未獲其背書。
 
-製作人：Skypray Huang  
-版本：1.2.1  
-最新日期：2026/10/18
+製作人：Skypray Huang<br>
+版本：1.3.0<br>
+最新日期：2026/11/06

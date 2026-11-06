@@ -24,7 +24,7 @@ prepare_tk()
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 from tkinter.scrolledtext import ScrolledText
-from core import arguments
+from core import arguments, output_template, parse_urls
 
 BASE = Path(sys.executable).parent if getattr(sys, 'frozen', False) else Path(__file__).parent
 
@@ -41,8 +41,8 @@ class App(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title('SkyTube Downloader · Skypray Huang')
-        self.geometry('850x850')
-        self.minsize(760, 760)
+        self.geometry('850x930')
+        self.minsize(800, 880)
         self.events = queue.Queue()
         self.proc = None
         self.busy = False
@@ -56,16 +56,18 @@ class App(tk.Tk):
         main.pack(fill='both', expand=True)
         main.columnconfigure(1, weight=1)
         ttk.Label(main, text='SkyTube Downloader', font=('Segoe UI', 22, 'bold')).grid(row=0, column=0, columnspan=3, sticky='w')
-        ttk.Label(main, text='單一 EXE 本機版 • 內含 FFmpeg、Deno 與 yt-dlp • 下載需要網路').grid(row=1, column=0, columnspan=3, sticky='w', pady=(0, 16))
-        self.url = self.field(main, 2, '影片連結', '')
-        self.playlist = tk.BooleanVar()
+        ttk.Label(main, text='Portable 本機版 • 多連結／播放清單批次下載 • 內含 FFmpeg、Deno 與 yt-dlp').grid(row=1, column=0, columnspan=3, sticky='w', pady=(0, 16))
+        ttk.Label(main, text='影片／播放清單\n每行一個連結').grid(row=2, column=0, sticky='nw', pady=5)
+        self.urls = ScrolledText(main, height=4, wrap='word', font=('Consolas', 10))
+        self.urls.grid(row=2, column=1, columnspan=2, sticky='ew', pady=5)
+        self.playlist = tk.BooleanVar(value=True)
         ttk.Checkbutton(main, text='下載整個播放清單（未勾選時只下載目前影片）', variable=self.playlist).grid(row=3, column=1, columnspan=2, sticky='w')
         self.quality = self.choice(main, 4, '最高解析度', ('480', '720', '1080', '2160', '最高畫質'), '1080')
         self.mode = self.choice(main, 5, '輸出類型', ('影片＋最佳音訊', 'MP3 音訊', '原始 AAC / M4A'), '影片＋最佳音訊')
         self.fallback = tk.BooleanVar()
         ttk.Checkbutton(main, text='AAC 不可用時允許轉碼（不再是原始 AAC）', variable=self.fallback).grid(row=6, column=1, columnspan=2, sticky='w')
         self.crop = tk.BooleanVar()
-        ttk.Checkbutton(main, text='啟用時間裁切（播放清單模式會套用到每一部影片）', variable=self.crop).grid(row=7, column=1, columnspan=2, sticky='w')
+        ttk.Checkbutton(main, text='啟用時間裁切（套用到本批次每一部影片）', variable=self.crop).grid(row=7, column=1, columnspan=2, sticky='w')
         self.start = self.time_field(main, 8, '開始時間', (None, None, None))
         self.end = self.time_field(main, 9, '結束時間', (None, None, None))
         for value in (*self.start, *self.end):
@@ -90,7 +92,7 @@ class App(tk.Tk):
         self.log = ScrolledText(main, height=10, wrap='word', font=('Consolas', 10), state='disabled')
         self.log.grid(row=18, column=0, columnspan=3, sticky='nsew')
         main.rowconfigure(18, weight=1)
-        ttk.Label(main, text='製作人：Skypray Huang  •  最新日期：2026/9/9', foreground='#666666').grid(row=19, column=0, columnspan=3, sticky='e', pady=(8, 0))
+        ttk.Label(main, text='製作人：Skypray Huang  •  v1.3.0  •  2026/11/06', foreground='#666666').grid(row=19, column=0, columnspan=3, sticky='e', pady=(8, 0))
         self.after(100, self.poll)
 
     def field(self, frame, row, label, default, picker=None):
@@ -151,6 +153,7 @@ class App(tk.Tk):
         if self.busy:
             return
         try:
+            urls = parse_urls(self.urls.get('1.0', 'end'))
             ffmpeg = binary('ffmpeg')
             deno = binary('deno')
             if not ffmpeg or not deno:
@@ -165,17 +168,16 @@ class App(tk.Tk):
             end = self.format_time(self.end) if self.crop.get() else ''
             if self.crop.get() and not start and not end:
                 raise ValueError('請填寫開始或結束時間，或取消勾選時間裁切。')
-            args = arguments(self.url.get(), self.quality.get(), self.mode.get(),
-                start, end, self.precise.get(), out, str(Path(ffmpeg).parent), cookie,
-                '' if self.browser.get() == '不使用' else self.browser.get(),
-                self.fallback.get(), deno, self.playlist.get())
+            commands = []
+            for url in urls:
+                args = arguments(url, self.quality.get(), self.mode.get(),
+                    start, end, self.precise.get(), out, str(Path(ffmpeg).parent), cookie,
+                    '' if self.browser.get() == '不使用' else self.browser.get(),
+                    self.fallback.get(), deno, self.playlist.get())
+                args[args.index('-o') + 1] = output_template(
+                    url, self.playlist.get(), uuid.uuid4().hex[:10])
+                commands.append(args)
             Path(out).mkdir(parents=True, exist_ok=True)
-            # Each request gets a distinct name, including different crops of one video.
-            suffix = uuid.uuid4().hex[:10]
-            if self.playlist.get():
-                args[args.index('-o') + 1] = '%(playlist_title).120B/%(playlist_index)03d - %(title).120B [%(id)s] ' + suffix + '.%(ext)s'
-            else:
-                args[args.index('-o') + 1] = '%(title).120B [%(id)s] ' + suffix + '.%(ext)s'
         except Exception as exc:
             messagebox.showerror('無法開始', str(exc))
             return
@@ -184,12 +186,37 @@ class App(tk.Tk):
         self.go.configure(state='disabled')
         self.cancel.configure(state='normal')
         self.bar['value'] = 0
-        self.status.set('正在取得影片資訊…')
-        self.append('開始新任務。下載進度以各串流分別計算；合併與裁切可能沒有百分比。')
-        threading.Thread(target=self.run, args=(args,), daemon=True).start()
+        self.batch_prefix = f'共 {len(commands)} 個連結'
+        self.urls.configure(state='disabled')
+        self.status.set(self.batch_prefix + '；正在取得影片資訊…')
+        self.append(f'開始批次：{len(commands)} 個連結（已移除完全相同的重複連結）。各連結依序下載；百分比為目前串流進度。')
+        threading.Thread(target=self.run, args=(commands,), daemon=True).start()
 
-    def run(self, args):
+    def run(self, commands):
+        result = dict(total=len(commands), completed=0, failed=0, files=0)
+        try:
+            for index, args in enumerate(commands, 1):
+                if self.stop_event.is_set():
+                    break
+                self.events.put(('link', (index, len(commands))))
+                self.events.put(('line', f'── 連結 {index}/{len(commands)}：{args[-1]}'))
+                code, files = self.run_one(args)
+                result['files'] += files
+                if self.stop_event.is_set():
+                    break
+                result['completed' if code == 0 else 'failed'] += 1
+                if code:
+                    self.events.put(('line', f'ERROR: 連結 {index}/{len(commands)} 未完整成功，繼續下一個連結。'))
+        except Exception as exc:
+            result['failed'] += 1
+            self.events.put(('line', 'ERROR: ' + str(exc)))
+        finally:
+            self.events.put(('done', result))
+
+    def run_one(self, args):
+        args = list(args)
         code = 1
+        files = 0
         try:
             # yt-dlp may save its cookie jar; work on a temporary copy only.
             with tempfile.TemporaryDirectory(prefix='ytd-gui-') as temp:
@@ -212,9 +239,11 @@ class App(tk.Tk):
                         line = stream.readline()
                         if line:
                             self.events.put(('line', line.rstrip()))
+                            files += int(line.startswith('FILE:'))
                         elif self.proc.poll() is not None:
                             for tail in stream:
                                 self.events.put(('line', tail.rstrip()))
+                                files += int(tail.startswith('FILE:'))
                             break
                         else:
                             time.sleep(0.1)
@@ -223,7 +252,7 @@ class App(tk.Tk):
             self.events.put(('line', 'ERROR: ' + str(exc)))
         finally:
             self.proc = None
-            self.events.put(('done', code))
+        return code, files
 
     def kill(self):
         proc = self.proc
@@ -248,24 +277,34 @@ class App(tk.Tk):
                 break
             if kind == 'done':
                 self.busy = False
+                self.urls.configure(state='normal')
                 self.go.configure(state='normal')
                 self.cancel.configure(state='disabled')
                 if self.stop_event.is_set():
-                    self.status.set('已取消。下載資料夾可能留有未完成檔案。')
-                elif value == 0:
+                    self.status.set(f'已取消；已產生 {value["files"]} 個檔案。下載資料夾可能留有未完成檔案。')
+                elif value['failed'] == 0:
                     self.bar['value'] = 100
-                    self.status.set('下載與處理完成。完整路徑見下方 FILE 訊息。')
+                    self.status.set(f'批次完成：{value["completed"]}/{value["total"]} 個連結成功，已產生 {value["files"]} 個檔案。路徑見 FILE 訊息。')
                 else:
-                    self.status.set('下載失敗，請查看下方 ERROR；403／登入驗證不一定能用 Cookie 解決。')
+                    self.bar['value'] = 0
+                    self.status.set(f'批次結束：{value["completed"]} 個連結成功、{value["failed"]} 個未完整成功，已產生 {value["files"]} 個檔案。請查看 ERROR。')
+                self.append(self.status.get())
+            elif kind == 'link':
+                self.batch_prefix = f'連結 {value[0]}/{value[1]}'
+                self.bar['value'] = 0
+                self.status.set(self.batch_prefix + '；正在取得影片資訊…')
             elif value.startswith('PROGRESS:'):
                 match = re.search(r'(\d+(?:\.\d+)?)%', value)
                 if match:
                     self.bar['value'] = float(match.group(1))
-                    self.status.set('目前串流下載 ' + match.group(0) + '；後續可能仍需合併／裁切')
+                    self.status.set(self.batch_prefix + '；目前串流 ' + match.group(0) + '；後續可能仍需合併／裁切')
             else:
                 self.append(value)
+                if value.startswith('ITEM:'):
+                    self.bar['value'] = 0
+                    self.status.set(self.batch_prefix + '；正在下載：' + value[5:])
                 if value.startswith(('[Merger]', '[ExtractAudio]', '[VideoRemuxer]', '[VideoConvertor]')):
-                    self.status.set('正在處理影音，請稍候…')
+                    self.status.set(self.batch_prefix + '；正在處理影音，請稍候…')
         self.after(100, self.poll)
 
     def open_folder(self):
