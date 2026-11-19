@@ -47,63 +47,182 @@ def binary(name):
 class App(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title('SkyTube Downloader · Skypray Huang')
+        self.title('SkyTube Downloader')
+        assets = Path(getattr(sys, '_MEIPASS', BASE)) / 'assets'
         if sys.platform == 'win32':
-            assets = Path(getattr(sys, '_MEIPASS', BASE)) / 'assets'
             self.iconbitmap(default=str(assets / 'skytube-icon.ico'))
-        self.geometry('850x930')
-        self.minsize(800, 880)
+        self.geometry('1020x740')
+        self.minsize(900, 700)
         self.events = queue.Queue()
         self.proc = None
         self.busy = False
         self.stop_event = threading.Event()
         self.protocol('WM_DELETE_WINDOW', self.close)
+
+        bg, panel, ink, muted, line, blue = (
+            '#edf3fa', '#ffffff', '#14243b', '#4c6079', '#ccd8e7', '#0868df')
+        self.configure(background=bg)
         style = ttk.Style(self)
         style.theme_use('clam')
-        style.configure('.', font=('Microsoft JhengHei UI', 10))
-        style.configure('TButton', padding=7)
-        main = ttk.Frame(self, padding=20)
+        style.configure('.', font=('Microsoft JhengHei UI', 10), foreground=ink,
+                        background=panel)
+        style.configure('Page.TFrame', background=bg)
+        style.configure('Page.TLabel', background=bg)
+        style.configure('Hint.TLabel', foreground=muted)
+        style.configure('Title.Page.TLabel', font=('Segoe UI', 26, 'bold'))
+        style.configure('Sub.Page.TLabel', foreground=muted)
+        style.configure('Field.TLabel', font=('Microsoft JhengHei UI', 10, 'bold'))
+        style.configure('Panel.TFrame', relief='solid', borderwidth=1, bordercolor=line)
+        style.configure('TButton', padding=(11, 6), background='#edf3fa',
+                        bordercolor=line, lightcolor='#edf3fa', darkcolor='#edf3fa')
+        style.map('TButton', background=[('active', '#e1edfc')])
+        style.configure('Primary.TButton', font=('Microsoft JhengHei UI', 11, 'bold'),
+                        padding=(21, 8), background=blue, foreground='white',
+                        bordercolor=blue, lightcolor=blue, darkcolor=blue)
+        style.map('Primary.TButton',
+                  background=[('disabled', '#dbe5f2'), ('pressed', '#0649a2'), ('active', '#0759c4')],
+                  foreground=[('disabled', muted)])
+        for control in ('TRadiobutton', 'TCheckbutton'):
+            style.configure(control, padding=(1, 3), indicatorbackground=panel,
+                            indicatorforeground=blue, indicatormargin=(0, 0, 6, 0))
+            style.map(control, indicatorbackground=[('selected', blue)],
+                      indicatorforeground=[('selected', 'white')])
+        for control in ('TEntry', 'TSpinbox', 'TCombobox'):
+            style.configure(control, fieldbackground=panel, bordercolor=line,
+                            lightcolor=panel, darkcolor=panel, padding=4)
+        style.configure('Horizontal.TProgressbar', background=blue,
+                        troughcolor='#dce6f2', bordercolor='#dce6f2',
+                        lightcolor=blue, darkcolor=blue, thickness=11)
+
+        main = ttk.Frame(self, padding=(20, 14), style='Page.TFrame')
         main.pack(fill='both', expand=True)
-        main.columnconfigure(1, weight=1)
-        ttk.Label(main, text='SkyTube Downloader', font=('Segoe UI', 22, 'bold')).grid(row=0, column=0, columnspan=3, sticky='w')
-        ttk.Label(main, text='Portable 本機版 • 多連結／播放清單批次下載 • 內含 FFmpeg、Deno 與 yt-dlp').grid(row=1, column=0, columnspan=3, sticky='w', pady=(0, 16))
-        ttk.Label(main, text='影片／播放清單\n每行一個連結').grid(row=2, column=0, sticky='nw', pady=5)
-        self.urls = ScrolledText(main, height=4, wrap='word', font=('Consolas', 10))
-        self.urls.grid(row=2, column=1, columnspan=2, sticky='ew', pady=5)
-        self.playlist = tk.BooleanVar(value=True)
-        ttk.Checkbutton(main, text='下載整個播放清單（未勾選時只下載目前影片）', variable=self.playlist).grid(row=3, column=1, columnspan=2, sticky='w')
-        self.quality = self.choice(main, 4, '最高解析度', ('480', '720', '1080', '2160', '最高畫質'), '1080')
-        self.mode = self.choice(main, 5, '輸出類型', OUTPUT_MODES, MKV_MODE)
+        main.columnconfigure(0, weight=1)
+        main.rowconfigure(8, weight=1)
+        heading = ttk.Frame(main, style='Page.TFrame')
+        heading.grid(row=0, sticky='ew', pady=(0, 13))
+        self.brand = tk.PhotoImage(file=str(assets / 'skytube-icon.png'))
+        ttk.Label(heading, image=self.brand, style='Page.TLabel').grid(
+            row=0, column=0, rowspan=2, padx=(0, 11))
+        ttk.Label(heading, text='SkyTube Downloader', style='Title.Page.TLabel').grid(
+            row=0, column=1, sticky='w')
+        ttk.Label(heading, text='YouTube 影片與音訊下載', style='Sub.Page.TLabel').grid(
+            row=1, column=1, sticky='w')
+
+        def card(row):
+            frame = ttk.Frame(main, padding=(12, 6), style='Panel.TFrame')
+            frame.grid(row=row, column=0, sticky='ew', pady=(0, 7))
+            frame.columnconfigure(1, weight=1)
+            return frame
+
+        links = card(1)
+        ttk.Label(links, text='影片連結', style='Field.TLabel', width=12).grid(
+            row=0, column=0, sticky='nw', pady=4)
+        self.urls = ScrolledText(links, height=3, wrap='word', font=('Consolas', 10),
+                                 relief='flat', padx=7, pady=5, background=panel,
+                                 foreground=ink, highlightbackground=line, highlightthickness=1)
+        self.urls.grid(row=0, column=1, sticky='ew')
+        self.playlist = tk.BooleanVar(value=False)
+        ttk.Checkbutton(links, text='下載整個播放清單', variable=self.playlist).grid(
+            row=1, column=1, sticky='w', pady=(2, 0))
+        ttk.Label(links, text='每行一個連結', style='Hint.TLabel').grid(
+            row=1, column=1, sticky='e')
+
+        self.quality = self.radio_row(card(2), '最高解析度', [
+            ('480p', '480'), ('720p', '720'), ('1080p', '1080'),
+            ('2160p', '2160'), ('最高畫質', '最高畫質')], '1080')
+        formats = card(3)
+        self.mode = self.radio_row(formats, '輸出類型', [
+            ('MKV · 最佳影音', MKV_MODE), *((mode, mode) for mode in OUTPUT_MODES[1:])],
+            MKV_MODE)
         self.fallback = tk.BooleanVar()
-        ttk.Checkbutton(main, text='AAC 不可用時允許轉碼（不再是原始 AAC）', variable=self.fallback).grid(row=6, column=1, columnspan=2, sticky='w')
+        aac_option = ttk.Checkbutton(formats, text='AAC 不可用時允許轉碼', variable=self.fallback)
+        aac_option.grid(row=1, column=1, sticky='w')
+        def sync_aac(*_):
+            if self.mode.get() == '原始 AAC / M4A':
+                aac_option.grid()
+            else:
+                aac_option.grid_remove()
+        self.mode.trace_add('write', sync_aac)
+        sync_aac()
+
+        timing = card(4)
+        timing.columnconfigure(1, weight=0)
+        timing.columnconfigure(2, weight=1)
         self.crop = tk.BooleanVar()
-        ttk.Checkbutton(main, text='啟用時間裁切（套用到本批次每一部影片）', variable=self.crop).grid(row=7, column=1, columnspan=2, sticky='w')
-        self.start = self.time_field(main, 8, '開始時間', (None, None, None))
-        self.end = self.time_field(main, 9, '結束時間', (None, None, None))
+        self.start = self.time_field(timing, 0, '開始時間')
+        self.end = self.time_field(timing, 1, '結束時間')
         for value in (*self.start, *self.end):
             value.trace_add('write', self.sync_crop)
         self.precise = tk.BooleanVar(value=True)
-        ttk.Checkbutton(main, text='精準裁切影片（避免開頭停格，會重新編碼）', variable=self.precise).grid(row=10, column=1, columnspan=2, sticky='w')
-        self.output = self.field(main, 11, '儲存資料夾', str(BASE / 'download'), 'folder')
-        self.browser = self.choice(main, 12, '登入 Cookie', ('不使用', 'firefox', 'chrome', 'edge'), '不使用')
-        self.cookie = self.field(main, 13, '或 cookies.txt', '', 'file')
-        ttk.Label(main, text='Cookie 檔優先；只在本機讀取。Chrome / Edge 可能無法解密，Cookie 不保證解除阻擋。', wraplength=780).grid(row=14, column=0, columnspan=3, sticky='w', pady=6)
-        actions = ttk.Frame(main)
-        actions.grid(row=15, column=0, columnspan=3, sticky='ew', pady=8)
-        self.go = ttk.Button(actions, text='開始下載', command=self.download)
-        self.go.pack(side='left')
+        trim_options = ttk.Frame(timing)
+        trim_options.grid(row=0, column=2, sticky='e', padx=(8, 0))
+        ttk.Checkbutton(trim_options, text='啟用時間裁切', variable=self.crop).grid(sticky='w')
+        ttk.Checkbutton(trim_options, text='精準裁切影片', variable=self.precise).grid(sticky='w')
+
+        storage = card(5)
+        self.output = self.field(storage, 0, '儲存資料夾', str(BASE / 'download'), 'folder')
+        options = ttk.Frame(storage)
+        options.grid(row=2, column=0, columnspan=3, sticky='ew')
+        options.columnconfigure(1, weight=1)
+        self.browser = self.choice(options, 0, '登入 Cookie', ('不使用', 'firefox', 'chrome', 'edge'), '不使用')
+        self.cookie = self.field(options, 1, '或 cookies.txt', '', 'file')
+        ttk.Label(options, text='Cookie 檔優先，並且只在本機讀取。', style='Hint.TLabel').grid(
+            row=2, column=1, sticky='w', pady=(2, 0))
+        options.grid_remove()
+
+        def toggle_cookie():
+            if options.winfo_ismapped():
+                options.grid_remove()
+                cookie_toggle.configure(text='顯示 Cookie 設定')
+            else:
+                options.grid()
+                cookie_toggle.configure(text='收合 Cookie 設定')
+
+        cookie_toggle = ttk.Button(storage, text='顯示 Cookie 設定', command=toggle_cookie)
+        cookie_toggle.grid(row=1, column=1, sticky='e', pady=(4, 0))
+
+        actions = ttk.Frame(main, style='Page.TFrame')
+        actions.grid(row=6, sticky='ew', pady=(3, 4))
+        actions.columnconfigure(4, weight=1)
+        self.go = ttk.Button(actions, text='開始下載', command=self.download, style='Primary.TButton')
+        self.go.grid(row=0, column=0, padx=(0, 8))
         self.cancel = ttk.Button(actions, text='取消', command=self.stop, state='disabled')
-        self.cancel.pack(side='left', padx=8)
-        ttk.Button(actions, text='開啟資料夾', command=self.open_folder).pack(side='left')
-        self.bar = ttk.Progressbar(main, maximum=100)
-        self.bar.grid(row=16, column=0, columnspan=3, sticky='ew')
+        self.cancel.grid(row=0, column=1, padx=(0, 8))
+        ttk.Button(actions, text='開啟資料夾', command=self.open_folder).grid(row=0, column=2)
+        self.percent = tk.StringVar(value='目前串流 0%')
+        ttk.Label(actions, textvariable=self.percent, width=16, style='Page.TLabel').grid(
+            row=0, column=3, padx=(17, 5), sticky='w')
+        self.bar = ttk.Progressbar(actions, maximum=100)
+        self.bar.grid(row=0, column=4, sticky='ew')
         self.status = tk.StringVar(value='準備就緒')
-        ttk.Label(main, textvariable=self.status, wraplength=790).grid(row=17, column=0, columnspan=3, sticky='w', pady=5)
-        self.log = ScrolledText(main, height=10, wrap='word', font=('Consolas', 10), state='disabled')
-        self.log.grid(row=18, column=0, columnspan=3, sticky='nsew')
-        main.rowconfigure(18, weight=1)
-        ttk.Label(main, text='製作人：Skypray Huang  •  v1.4.1  •  2026/11/19', foreground='#666666').grid(row=19, column=0, columnspan=3, sticky='e', pady=(8, 0))
+        ttk.Label(main, textvariable=self.status, style='Sub.Page.TLabel', wraplength=850).grid(
+            row=7, sticky='w', pady=(1, 5))
+
+        log_card = ttk.Frame(main, padding=(10, 6), style='Panel.TFrame')
+        log_card.grid(row=8, sticky='nsew')
+        log_card.columnconfigure(0, weight=1)
+        log_card.rowconfigure(1, weight=1)
+        ttk.Label(log_card, text='下載記錄', style='Field.TLabel').grid(row=0, sticky='w')
+        self.log = ScrolledText(log_card, height=4, wrap='word', font=('Consolas', 10),
+                                relief='flat', padx=5, pady=4, background='#f7faff',
+                                foreground=ink, state='disabled')
+        self.log.grid(row=1, sticky='nsew', pady=(4, 0))
+        ttk.Label(main, text='製作人：Skypray Huang  ·  v1.5.0', style='Sub.Page.TLabel').grid(
+            row=9, sticky='e', pady=(6, 0))
         self.after(100, self.poll)
+
+    def radio_row(self, frame, label, options, default):
+        var = tk.StringVar(value=default)
+        ttk.Label(frame, text=label, style='Field.TLabel', width=12).grid(
+            row=0, column=0, sticky='w')
+        row = ttk.Frame(frame)
+        row.grid(row=0, column=1, sticky='ew')
+        for column, (text, value) in enumerate(options):
+            row.columnconfigure(column, weight=1)
+            ttk.Radiobutton(row, text=text, value=value, variable=var).grid(
+                row=0, column=column, sticky='w', padx=(0, 8))
+        return var
+
 
     def field(self, frame, row, label, default, picker=None):
         var = tk.StringVar(value=default)
@@ -123,16 +242,16 @@ class App(tk.Tk):
         ttk.Combobox(frame, values=options, textvariable=var, state='readonly').grid(row=row, column=1, sticky='ew', pady=5)
         return var
 
-    def time_field(self, frame, row, label, default):
-        ttk.Label(frame, text=label).grid(row=row, column=0, sticky='w', padx=(0, 12), pady=5)
+    def time_field(self, frame, column, label):
         box = ttk.Frame(frame)
-        box.grid(row=row, column=1, columnspan=2, sticky='w', pady=5)
-        values = [tk.StringVar(value='' if value is None else f'{value:02d}') for value in default]
-        for index, (var, limit, name) in enumerate(zip(values, (999, 59, 59), ('HH', 'MM', 'SS'))):
-            ttk.Spinbox(box, from_=0, to=limit, textvariable=var,
-                        width=5 if index == 0 else 3, justify='center', wrap=False).grid(
-                            row=0, column=index * 2, padx=(0, 4))
-            ttk.Label(box, text=name).grid(row=0, column=index * 2 + 1, padx=(0, 10))
+        box.grid(row=0, column=column, sticky='w', padx=(0, 16))
+        ttk.Label(box, text=label, style='Field.TLabel').grid(
+            row=0, column=0, rowspan=2, padx=(0, 12))
+        values = [tk.StringVar() for _ in range(3)]
+        for index, (var, limit, name) in enumerate(zip(values, (999, 59, 59), ('HH', 'MM', 'SS')), 1):
+            ttk.Label(box, text=name, style='Hint.TLabel').grid(row=0, column=index)
+            ttk.Spinbox(box, from_=0, to=limit, textvariable=var, width=4,
+                        justify='center', wrap=False).grid(row=1, column=index, padx=2)
         return values
 
     @staticmethod
@@ -153,7 +272,7 @@ class App(tk.Tk):
 
     def append(self, line):
         self.log.configure(state='normal')
-        self.log.insert('end', line + '\n')
+        self.log.insert('end', f'[{time.strftime("%H:%M:%S")}] {line}\n')
         if int(self.log.index('end-1c').split('.')[0]) > 1500:
             self.log.delete('1.0', '300.0')
         self.log.see('end')
@@ -195,7 +314,7 @@ class App(tk.Tk):
         self.stop_event.clear()
         self.go.configure(state='disabled')
         self.cancel.configure(state='normal')
-        self.bar['value'] = 0
+        self.set_progress(0)
         self.batch_prefix = f'共 {len(commands)} 個連結'
         self.urls.configure(state='disabled')
         self.status.set(self.batch_prefix + '；正在取得影片資訊…')
@@ -279,6 +398,11 @@ class App(tk.Tk):
         self.status.set('正在取消…')
         threading.Thread(target=self.kill, daemon=True).start()
 
+    def set_progress(self, percent):
+        percent = max(0, min(100, percent))
+        self.bar['value'] = percent
+        self.percent.set(f'目前串流 {percent:.0f}%')
+
     def poll(self):
         while True:
             try:
@@ -293,25 +417,26 @@ class App(tk.Tk):
                 if self.stop_event.is_set():
                     self.status.set(f'已取消；已產生 {value["files"]} 個檔案。下載資料夾可能留有未完成檔案。')
                 elif value['failed'] == 0:
-                    self.bar['value'] = 100
+                    self.set_progress(100)
                     self.status.set(f'批次完成：{value["completed"]}/{value["total"]} 個連結成功，已產生 {value["files"]} 個檔案。路徑見 FILE 訊息。')
                 else:
-                    self.bar['value'] = 0
+                    self.set_progress(0)
                     self.status.set(f'批次結束：{value["completed"]} 個連結成功、{value["failed"]} 個未完整成功，已產生 {value["files"]} 個檔案。請查看 ERROR。')
                 self.append(self.status.get())
             elif kind == 'link':
                 self.batch_prefix = f'連結 {value[0]}/{value[1]}'
-                self.bar['value'] = 0
+                self.set_progress(0)
                 self.status.set(self.batch_prefix + '；正在取得影片資訊…')
             elif value.startswith('PROGRESS:'):
                 match = re.search(r'(\d+(?:\.\d+)?)%', value)
                 if match:
-                    self.bar['value'] = float(match.group(1))
-                    self.status.set(self.batch_prefix + '；目前串流 ' + match.group(0) + '；後續可能仍需合併／裁切')
-            else:
+                    self.set_progress(float(match.group(1)))
+            elif value.startswith('PROCESS:started:') and not value.endswith(':MoveFiles'):
+                self.status.set(self.batch_prefix + '；正在處理影音…')
+            elif not value.startswith('PROCESS:'):
                 self.append(value)
                 if value.startswith('ITEM:'):
-                    self.bar['value'] = 0
+                    self.set_progress(0)
                     self.status.set(self.batch_prefix + '；正在下載：' + value[5:])
                 elif value.startswith('[SkyTubeMP4] '):
                     self.status.set(self.batch_prefix + ' · ' + value.removeprefix('[SkyTubeMP4] '))

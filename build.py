@@ -90,7 +90,8 @@ if __name__ == '__main__':
     root = Path(__file__).resolve().parent
     prepare_tools(root)
     icon = root / 'assets' / 'skytube-icon.ico'
-    data_args = ['--add-data', f'{icon}:assets']
+    data_args = ['--add-data', f'{icon}:assets',
+                 '--add-data', f"{icon.with_suffix('.png')}:assets"]
     for source, destination in ssl_data_files():
         data_args += ['--add-data', source + ':' + destination]
     PyInstaller.__main__.run([

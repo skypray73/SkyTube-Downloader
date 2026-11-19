@@ -59,12 +59,13 @@ def arguments(url, quality, mode, start, end, precise, output, ffmpeg,
     if mode not in OUTPUT_MODES:
         raise ValueError('不支援的輸出模式')
     args = ['--ignore-config', '--yes-playlist' if playlist else '--no-playlist',
-            '--no-abort-on-error', '--no-simulate', '--newline', '--no-color',
+            '--no-abort-on-error', '--no-simulate', '--progress', '--newline', '--no-color',
             '--encoding', 'utf-8', '--no-overwrites', '--windows-filenames',
             '--socket-timeout', '25', '--retries', '3', '--fragment-retries', '3',
             '--ffmpeg-location', ffmpeg, '-P', output,
             '-o', '%(title).120B [%(id)s].%(ext)s',
             '--progress-template', 'download:PROGRESS:%(progress._percent_str)s',
+            '--progress-template', 'postprocess:PROCESS:%(progress.status)s:%(progress.postprocessor)s',
             '--print', 'before_dl:ITEM:%(title)s',
             '--print', 'after_move:FILE:%(filepath)s']
     if deno:
