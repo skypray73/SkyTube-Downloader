@@ -3,6 +3,11 @@ import re
 from urllib.parse import parse_qs, urlsplit
 
 
+MKV_MODE = '影片＋最佳音訊（MKV）'
+MP4_ENCODERS = {'MP4（H.264）': 'libx264', 'MP4（H.265）': 'libx265'}
+OUTPUT_MODES = (MKV_MODE, *MP4_ENCODERS, 'MP3 音訊', '原始 AAC / M4A')
+
+
 def validate_url(url):
     parsed = urlsplit(url)
     host = (parsed.hostname or '').lower()
@@ -49,7 +54,9 @@ def arguments(url, quality, mode, start, end, precise, output, ffmpeg,
         raise ValueError('純播放清單連結需勾選「下載整個播放清單」')
     if quality not in ('480', '720', '1080', '2160', '最高畫質'):
         raise ValueError('不支援的畫質')
-    if mode not in ('影片＋最佳音訊', 'MP3 音訊', '原始 AAC / M4A'):
+    if mode == '影片＋最佳音訊':
+        mode = MKV_MODE
+    if mode not in OUTPUT_MODES:
         raise ValueError('不支援的輸出模式')
     args = ['--ignore-config', '--yes-playlist' if playlist else '--no-playlist',
             '--no-abort-on-error', '--no-simulate', '--newline', '--no-color',
@@ -66,10 +73,16 @@ def arguments(url, quality, mode, start, end, precise, output, ffmpeg,
         args += ['--cookies', cookie]
     elif browser:
         args += ['--cookies-from-browser', browser]
-    if mode == '影片＋最佳音訊':
+    if mode == MKV_MODE or mode in MP4_ENCODERS:
         cap = '' if quality == '最高畫質' else '[height<=' + quality + ']'
-        args += ['-f', f'bv{cap}+ba/b{cap}', '--merge-output-format', 'mkv',
-                 '--remux-video', 'mkv']
+        best = f'bv{cap}+ba/b{cap}'
+        if mode in MP4_ENCODERS:
+            best = f'bv{cap}+ba[acodec^=mp4a]/bv{cap}+ba[acodec=aac]/{best}'
+        args += ['-f', best, '--merge-output-format', 'mkv']
+        if mode == MKV_MODE:
+            args += ['--remux-video', 'mkv']
+        else:
+            args += ['--use-postprocessor', f'SkyTubeMP4:encoder={MP4_ENCODERS[mode]}']
     elif mode == 'MP3 音訊':
         args += ['-f', 'ba', '-x', '--audio-format', 'mp3', '--audio-quality', '0']
     else:

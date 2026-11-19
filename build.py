@@ -4,9 +4,45 @@ import hashlib
 import shutil
 import subprocess
 import tempfile
+from urllib.request import urlopen
+from zipfile import ZipFile
 import PyInstaller.__main__
 from tk_runtime import prepare_tk
 from runtime_support import ssl_data_files
+
+
+FFMPEG_VERSION = '9.0.2'
+FFMPEG_ARCHIVE = f'ffmpeg-{FFMPEG_VERSION}-essentials_build.zip'
+FFMPEG_URL = f'https://github.com/GyanD/codexffmpeg/releases/download/{FFMPEG_VERSION}/{FFMPEG_ARCHIVE}'
+FFMPEG_SHA256 = '60f467265b1e312373dbcd92200c2618a74850f98d3d078e94296bb3fa2047ba'
+
+
+def sha256(path):
+    with path.open('rb') as stream:
+        return hashlib.file_digest(stream, 'sha256').hexdigest()
+
+
+def prepare_ffmpeg(root, tools, licenses):
+    cache = root / 'build' / 'ffmpeg'
+    cache.mkdir(parents=True, exist_ok=True)
+    archive = cache / FFMPEG_ARCHIVE
+    if not archive.exists() or sha256(archive) != FFMPEG_SHA256:
+        with tempfile.TemporaryDirectory(dir=cache) as temp:
+            download = Path(temp) / FFMPEG_ARCHIVE
+            with urlopen(FFMPEG_URL, timeout=60) as response, download.open('wb') as target:
+                shutil.copyfileobj(response, target)
+            if sha256(download) != FFMPEG_SHA256:
+                raise RuntimeError('FFmpeg archive SHA-256 did not match the pinned release')
+            download.replace(archive)
+
+    prefix = f'ffmpeg-{FFMPEG_VERSION}-essentials_build'
+    with ZipFile(archive) as release:
+        for member, target in (
+            (f'{prefix}/bin/ffmpeg.exe', tools / 'ffmpeg.exe'),
+            (f'{prefix}/LICENSE', licenses / 'FFmpeg-GPLv3.txt'),
+        ):
+            with release.open(member) as source, target.open('wb') as output:
+                shutil.copyfileobj(source, output)
 
 
 def verify_packaged_runtime(portable):
@@ -23,29 +59,20 @@ def verify_packaged_runtime(portable):
 
 
 def prepare_tools(root):
-    """Copy the pip-provided Windows runtimes into the distributable folder."""
+    """Prepare the external Windows tools for the distributable folder."""
     import deno
-    import imageio_ffmpeg
 
     tools = root / 'tools'
     licenses = tools / 'licenses'
     licenses.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(imageio_ffmpeg.get_ffmpeg_exe(), tools / 'ffmpeg.exe')
+    prepare_ffmpeg(root, tools, licenses)
     shutil.copy2(deno.find_deno_bin(), tools / 'deno.exe')
 
-    for package, target in (
-        ('imageio-ffmpeg', 'imageio-ffmpeg-LICENSE.txt'),
-        ('deno', 'Deno-LICENSE.txt'),
-    ):
-        dist = importlib.metadata.distribution(package)
-        license_files = [path for path in (dist.files or [])
-                         if Path(str(path)).name.upper() == 'LICENSE']
-        if license_files:
-            shutil.copy2(dist.locate_file(license_files[0]), licenses / target)
-
-    # The bundled imageio-ffmpeg Windows binary is a GPLv3 FFmpeg build.
-    gpl = licenses / 'FFmpeg-GPLv3.txt'
-    shutil.copy2(root / 'LICENSE', gpl)
+    dist = importlib.metadata.distribution('deno')
+    license_file = next((path for path in dist.files or []
+                         if Path(str(path)).name.upper() == 'LICENSE'), None)
+    if license_file:
+        shutil.copy2(dist.locate_file(license_file), licenses / 'Deno-LICENSE.txt')
 
     versions = [
         subprocess.check_output([tools / 'ffmpeg.exe', '-version'], text=True,
@@ -53,7 +80,7 @@ def prepare_tools(root):
         subprocess.check_output([tools / 'deno.exe', '--version'], text=True,
                                 encoding='utf-8', errors='replace').splitlines()[0],
         'Deno Python redistribution: ' + importlib.metadata.version('deno'),
-        'imageio-ffmpeg: ' + importlib.metadata.version('imageio-ffmpeg'),
+        'yt-dlp: ' + importlib.metadata.version('yt-dlp'),
     ]
     (tools / 'VERSIONS.txt').write_text('\n'.join(versions) + '\n', encoding='utf-8')
 
@@ -77,7 +104,8 @@ if __name__ == '__main__':
     portable = root / 'dist' / 'SkyTubeDownloader'
     verify_packaged_runtime(portable)
     # Keep large tools outside both the EXE and PyInstaller's runtime folder.
-    shutil.copytree(root / 'tools', portable / 'tools', dirs_exist_ok=True)
+    shutil.copytree(root / 'tools', portable / 'tools', dirs_exist_ok=True,
+                    ignore=shutil.ignore_patterns('imageio-ffmpeg-LICENSE.txt'))
     for name in ('README.md', 'LICENSE', 'COPYRIGHT', 'THIRD_PARTY_NOTICES.md'):
         shutil.copy2(root / name, portable / name)
     shutil.copytree(root / 'licenses', portable / 'licenses', dirs_exist_ok=True)
@@ -87,7 +115,7 @@ if __name__ == '__main__':
         encoding='utf-8')
     archive = Path(shutil.make_archive(str(root / 'dist' / 'SkyTubeDownloader-Portable'),
                                       'zip', root / 'dist', portable.name))
-    digest = hashlib.sha256(archive.read_bytes()).hexdigest()
+    digest = sha256(archive)
     archive.with_suffix('.zip.sha256').write_text(
         digest + '  ' + archive.name + '\n', encoding='ascii')
     print('Ready:', archive)

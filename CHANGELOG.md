@@ -2,6 +2,12 @@
 
 所有重要變更都記錄在此文件。本專案版本採用 Semantic Versioning。
 
+## [1.4.0] - 2026-11-19
+
+- 保留 MKV 為預設，新增 MP4（H.264）及 MP4（H.265）影片輸出，優先保留來源 AAC 音軌，沒有時才轉成 AAC。
+- 更新內嵌 yt-dlp 至 2026.10.26。
+- 將 FFmpeg 從 7.1 更新至 9.0.2（Essentials build），維持獨立的 tools/ffmpeg.exe。
+
 ## [1.3.1] - 2026-11-06
 
 ### Fixed

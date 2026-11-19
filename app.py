@@ -20,6 +20,9 @@ if '--worker' in sys.argv:
         print(f'RUNTIME_OK: verified TLS context; {check_ssl_runtime()} CA certificates')
         raise SystemExit(0)
     import yt_dlp
+    from video_output import register_mp4_postprocessor
+
+    register_mp4_postprocessor()
     yt_dlp.main(sys.argv[worker_index + 2:])
     raise SystemExit
 
@@ -28,7 +31,7 @@ prepare_tk()
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 from tkinter.scrolledtext import ScrolledText
-from core import arguments, output_template, parse_urls
+from core import MKV_MODE, OUTPUT_MODES, arguments, output_template, parse_urls
 
 BASE = Path(sys.executable).parent if getattr(sys, 'frozen', False) else Path(__file__).parent
 
@@ -67,7 +70,7 @@ class App(tk.Tk):
         self.playlist = tk.BooleanVar(value=True)
         ttk.Checkbutton(main, text='下載整個播放清單（未勾選時只下載目前影片）', variable=self.playlist).grid(row=3, column=1, columnspan=2, sticky='w')
         self.quality = self.choice(main, 4, '最高解析度', ('480', '720', '1080', '2160', '最高畫質'), '1080')
-        self.mode = self.choice(main, 5, '輸出類型', ('影片＋最佳音訊', 'MP3 音訊', '原始 AAC / M4A'), '影片＋最佳音訊')
+        self.mode = self.choice(main, 5, '輸出類型', OUTPUT_MODES, MKV_MODE)
         self.fallback = tk.BooleanVar()
         ttk.Checkbutton(main, text='AAC 不可用時允許轉碼（不再是原始 AAC）', variable=self.fallback).grid(row=6, column=1, columnspan=2, sticky='w')
         self.crop = tk.BooleanVar()
@@ -91,12 +94,12 @@ class App(tk.Tk):
         ttk.Button(actions, text='開啟資料夾', command=self.open_folder).pack(side='left')
         self.bar = ttk.Progressbar(main, maximum=100)
         self.bar.grid(row=16, column=0, columnspan=3, sticky='ew')
-        self.status = tk.StringVar(value='準備就緒 · 影片以 MKV 保存最佳影音；AAC 以 M4A 保存。')
+        self.status = tk.StringVar(value='準備就緒')
         ttk.Label(main, textvariable=self.status, wraplength=790).grid(row=17, column=0, columnspan=3, sticky='w', pady=5)
         self.log = ScrolledText(main, height=10, wrap='word', font=('Consolas', 10), state='disabled')
         self.log.grid(row=18, column=0, columnspan=3, sticky='nsew')
         main.rowconfigure(18, weight=1)
-        ttk.Label(main, text='製作人：Skypray Huang  •  v1.3.1  •  2026/11/06', foreground='#666666').grid(row=19, column=0, columnspan=3, sticky='e', pady=(8, 0))
+        ttk.Label(main, text='製作人：Skypray Huang  •  v1.4.0  •  2026/11/19', foreground='#666666').grid(row=19, column=0, columnspan=3, sticky='e', pady=(8, 0))
         self.after(100, self.poll)
 
     def field(self, frame, row, label, default, picker=None):
@@ -307,7 +310,9 @@ class App(tk.Tk):
                 if value.startswith('ITEM:'):
                     self.bar['value'] = 0
                     self.status.set(self.batch_prefix + '；正在下載：' + value[5:])
-                if value.startswith(('[Merger]', '[ExtractAudio]', '[VideoRemuxer]', '[VideoConvertor]')):
+                elif value.startswith('[SkyTubeMP4] '):
+                    self.status.set(self.batch_prefix + ' · ' + value.removeprefix('[SkyTubeMP4] '))
+                elif value.startswith(('[Merger]', '[ExtractAudio]', '[VideoRemuxer]', '[VideoConvertor]')):
                     self.status.set(self.batch_prefix + '；正在處理影音，請稍候…')
         self.after(100, self.poll)
 

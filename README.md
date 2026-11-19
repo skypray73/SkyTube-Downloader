@@ -24,11 +24,11 @@
 
 ## 下載 Windows 版
 
-從 [最新 Release](https://github.com/skypray73/SkyTube-Downloader/releases/latest) 下載 `SkyTubeDownloader-Portable.zip`，完整解壓縮後執行其中的 `SkyTubeDownloader.exe`。依賴獨立存放，包含：
+從 [最新 Release](https://github.com/skypray73/SkyTube-Downloader/releases/latest) 下載 Windows Portable ZIP，完整解壓縮後執行其中的 `SkyTubeDownloader.exe`。依賴獨立存放，包含：
 
-- FFmpeg 7.1
+- FFmpeg 9.0.2
 - Deno 2.9.6
-- yt-dlp 2026.08.19
+- yt-dlp 2026.10.26
 
 Windows SmartScreen 可能會對沒有程式碼簽章的新應用顯示警告。可用 Release 附帶的 SHA-256 檔案核對下載內容。
 
@@ -47,7 +47,7 @@ Windows SmartScreen 可能會對沒有程式碼簽章的新應用顯示警告。
 
 進度列顯示目前影音串流的百分比，狀態列顯示第幾個連結及目前影片。遇到私人、已刪除或下載失敗的影片會繼續處理其他影片／連結；只要一個清單有失敗項目，該連結就列為「未完整成功」，已成功的檔案仍會保留。按「取消」會停止目前下載及後續佇列，已完成的檔案保留。
 
-影片以 MKV 保存，以容納來源提供的最佳影音編碼。最高畫質可能使用 AV1 或 VP9，需要相容播放器。AAC 模式會優先保存來源 AAC／M4A；沒有 AAC 時預設失敗，只有勾選允許轉碼後才將其他音訊重新編碼為 AAC。
+影片預設以 MKV 保存，以容納來源提供的最佳影音編碼。也可在「輸出類型」選擇 MP4（H.264）或 MP4（H.265），兩者都優先選用 YouTube 提供的 AAC 音軌，並直接保留 AAC。若沒有可用的 AAC，才將其他音訊轉成 AAC。MP4 模式會重新編碼影片，下載後仍需等待轉碼完成。H.264 的播放與剪輯相容性通常較好。AAC 模式會優先保存來源 AAC／M4A；沒有 AAC 時預設失敗，只有勾選允許轉碼後才將其他音訊重新編碼為 AAC。
 
 ## Cookie 與 YouTube 限制
 
@@ -67,7 +67,7 @@ python -m venv .venv
 .\.venv\Scripts\python.exe app.py
 ```
 
-第一次執行 `build.py` 會從已安裝的 Python 套件取出 FFmpeg 和 Deno，建立本機 `tools` 目錄，再產生 `dist\SkyTubeDownloader-Portable.zip` 與 SHA-256 校驗檔。
+第一次執行 `build.py` 會下載並校驗指定的 FFmpeg Windows 版本，並從已安裝的 Python 套件取出 Deno，建立本機 `tools` 目錄，再產生 `dist\SkyTubeDownloader-Portable.zip` 與 SHA-256 校驗檔。
 
 ## 建置 Portable ZIP
 
@@ -104,5 +104,5 @@ dist\SkyTubeDownloader\
 YouTube 是 Google LLC 的商標。本專案與 YouTube 無關，也未獲其背書。
 
 製作人：Skypray Huang<br>
-版本：1.3.1<br>
-最新日期：2026/11/06
+版本：1.4.0<br>
+最新日期：2026/11/19
