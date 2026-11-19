@@ -48,6 +48,9 @@ class App(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title('SkyTube Downloader · Skypray Huang')
+        if sys.platform == 'win32':
+            assets = Path(getattr(sys, '_MEIPASS', BASE)) / 'assets'
+            self.iconbitmap(default=str(assets / 'skytube-icon.ico'))
         self.geometry('850x930')
         self.minsize(800, 880)
         self.events = queue.Queue()
@@ -99,7 +102,7 @@ class App(tk.Tk):
         self.log = ScrolledText(main, height=10, wrap='word', font=('Consolas', 10), state='disabled')
         self.log.grid(row=18, column=0, columnspan=3, sticky='nsew')
         main.rowconfigure(18, weight=1)
-        ttk.Label(main, text='製作人：Skypray Huang  •  v1.4.0  •  2026/11/19', foreground='#666666').grid(row=19, column=0, columnspan=3, sticky='e', pady=(8, 0))
+        ttk.Label(main, text='製作人：Skypray Huang  •  v1.4.1  •  2026/11/19', foreground='#666666').grid(row=19, column=0, columnspan=3, sticky='e', pady=(8, 0))
         self.after(100, self.poll)
 
     def field(self, frame, row, label, default, picker=None):

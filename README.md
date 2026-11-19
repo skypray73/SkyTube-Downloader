@@ -1,5 +1,7 @@
 # SkyTube Downloader
 
+<img src="assets/skytube-icon.svg" width="64" height="64" alt="SkyTube Downloader 圖示">
+
 由 Skypray Huang 製作的 Windows 本機 GUI。支援多連結批次下載、完整播放清單、解析度選擇、MP3／AAC 音訊，以及精準時間裁切。Portable 版將主程式、Python 執行環境、FFmpeg 與 Deno 分開存放，壓成同一份 ZIP，不需要安裝 Python、Docker 或 API Key。
 
 ![SkyTube Downloader 主畫面](docs/skytube-downloader-preview.png)
@@ -104,5 +106,5 @@ dist\SkyTubeDownloader\
 YouTube 是 Google LLC 的商標。本專案與 YouTube 無關，也未獲其背書。
 
 製作人：Skypray Huang<br>
-版本：1.4.0<br>
+版本：1.4.1<br>
 最新日期：2026/11/19

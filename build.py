@@ -89,13 +89,15 @@ if __name__ == '__main__':
     prepare_tk()
     root = Path(__file__).resolve().parent
     prepare_tools(root)
-    data_args = []
+    icon = root / 'assets' / 'skytube-icon.ico'
+    data_args = ['--add-data', f'{icon}:assets']
     for source, destination in ssl_data_files():
         data_args += ['--add-data', source + ':' + destination]
     PyInstaller.__main__.run([
         '--noconfirm', '--clean', '--onedir', '--windowed',
         '--name', 'SkyTubeDownloader', '--collect-all', 'yt_dlp',
         '--collect-all', 'yt_dlp_ejs',
+        '--icon', str(icon),
         '--version-file', str(root / 'version_info.txt'),
         '--distpath', str(root / 'dist'),
         '--workpath', str(root / 'build'), '--specpath', str(root / 'build'),
@@ -108,6 +110,8 @@ if __name__ == '__main__':
                     ignore=shutil.ignore_patterns('imageio-ffmpeg-LICENSE.txt'))
     for name in ('README.md', 'LICENSE', 'COPYRIGHT', 'THIRD_PARTY_NOTICES.md'):
         shutil.copy2(root / name, portable / name)
+    (portable / 'assets').mkdir(exist_ok=True)
+    shutil.copy2(icon.with_suffix('.svg'), portable / 'assets')
     shutil.copytree(root / 'licenses', portable / 'licenses', dirs_exist_ok=True)
     (portable / '使用說明.txt').write_text(
         '請先完整解壓縮 ZIP，再執行 SkyTubeDownloader.exe。\n'
