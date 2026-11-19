@@ -53,7 +53,7 @@ Windows SmartScreen 可能會對沒有程式碼簽章的新應用顯示警告。
 
 ## Cookie 與 YouTube 限制
 
-預設不讀取登入資料。若影片需要登入，可明確選擇 Firefox、Chrome、Edge，或 Netscape 格式的 `cookies.txt`。Cookie 只在本機處理；選定的檔案會先複製到暫存目錄，避免 yt-dlp 回寫原檔。
+預設不讀取登入資料。若 YouTube 要求登入，建議先在 Firefox 登入 YouTube，再於「登入 Cookie」選 Firefox。也可選 Chrome，或勾選「使用 cookies.txt」指定 Netscape 格式的檔案。Safari 僅支援 macOS。Cookie 只在本機處理；選定的檔案會先複製到暫存目錄，避免 yt-dlp 回寫原檔。
 
 Cookie 不保證能解決 HTTP 403、機器人驗證、PO Token 或區域限制。YouTube 介面與驗證方式會改變，遇到問題時可先更新 yt-dlp 並重新建置。請勿把 cookies.txt 提交至 GitHub 或附加到 Issue。
 
@@ -106,5 +106,5 @@ dist\SkyTubeDownloader\
 YouTube 是 Google LLC 的商標。本專案與 YouTube 無關，也未獲其背書。
 
 製作人：Skypray Huang<br>
-版本：1.5.0<br>
+版本：1.5.1<br>
 最新日期：2026/11/19

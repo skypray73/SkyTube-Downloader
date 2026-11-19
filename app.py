@@ -71,6 +71,9 @@ class App(tk.Tk):
         style.configure('Hint.TLabel', foreground=muted)
         style.configure('Title.Page.TLabel', font=('Segoe UI', 26, 'bold'))
         style.configure('Sub.Page.TLabel', foreground=muted)
+        style.configure('Progress.Page.TLabel', foreground='#0759c4')
+        style.configure('Error.Page.TLabel', foreground='#b4232c')
+        style.configure('Success.Page.TLabel', foreground='#147745')
         style.configure('Field.TLabel', font=('Microsoft JhengHei UI', 10, 'bold'))
         style.configure('Panel.TFrame', relief='solid', borderwidth=1, bordercolor=line)
         style.configure('TButton', padding=(11, 6), background='#edf3fa',
@@ -161,25 +164,32 @@ class App(tk.Tk):
 
         storage = card(5)
         self.output = self.field(storage, 0, '儲存資料夾', str(BASE / 'download'), 'folder')
-        options = ttk.Frame(storage)
-        options.grid(row=2, column=0, columnspan=3, sticky='ew')
-        options.columnconfigure(1, weight=1)
-        self.browser = self.choice(options, 0, '登入 Cookie', ('不使用', 'firefox', 'chrome', 'edge'), '不使用')
-        self.cookie = self.field(options, 1, '或 cookies.txt', '', 'file')
-        ttk.Label(options, text='Cookie 檔優先，並且只在本機讀取。', style='Hint.TLabel').grid(
-            row=2, column=1, sticky='w', pady=(2, 0))
-        options.grid_remove()
+        browser_options = ttk.Frame(storage)
+        browser_options.grid(row=1, column=0, columnspan=3, sticky='ew')
+        browser_options.columnconfigure(1, weight=1)
+        safari_label = 'Safari' if sys.platform == 'darwin' else 'Safari（macOS）'
+        self.browser = self.radio_row(browser_options, '登入 Cookie', [
+            ('不使用', ''), ('Firefox（建議）', 'firefox'),
+            ('Chrome', 'chrome'), (safari_label, 'safari')], '',
+            disabled=() if sys.platform == 'darwin' else ('safari',))
+        ttk.Label(browser_options, text='需要驗證時，建議先用 Firefox 登入 YouTube。',
+                  style='Hint.TLabel').grid(row=1, column=1, sticky='w', pady=(0, 3))
 
-        def toggle_cookie():
-            if options.winfo_ismapped():
-                options.grid_remove()
-                cookie_toggle.configure(text='顯示 Cookie 設定')
+        cookie_controls = ttk.Frame(storage)
+        cookie_controls.grid(row=3, column=0, columnspan=3, sticky='ew')
+        cookie_controls.columnconfigure(1, weight=1)
+        self.cookie = self.field(cookie_controls, 0, 'Cookie 檔案', '', 'file')
+        cookie_controls.grid_remove()
+        self.use_cookie_file = tk.BooleanVar()
+
+        def toggle_cookie_file():
+            if self.use_cookie_file.get():
+                cookie_controls.grid()
             else:
-                options.grid()
-                cookie_toggle.configure(text='收合 Cookie 設定')
+                cookie_controls.grid_remove()
 
-        cookie_toggle = ttk.Button(storage, text='顯示 Cookie 設定', command=toggle_cookie)
-        cookie_toggle.grid(row=1, column=1, sticky='e', pady=(4, 0))
+        ttk.Checkbutton(storage, text='使用 cookies.txt', variable=self.use_cookie_file,
+                        command=toggle_cookie_file).grid(row=2, column=1, sticky='w')
 
         actions = ttk.Frame(main, style='Page.TFrame')
         actions.grid(row=6, sticky='ew', pady=(3, 4))
@@ -190,13 +200,14 @@ class App(tk.Tk):
         self.cancel.grid(row=0, column=1, padx=(0, 8))
         ttk.Button(actions, text='開啟資料夾', command=self.open_folder).grid(row=0, column=2)
         self.percent = tk.StringVar(value='目前串流 0%')
-        ttk.Label(actions, textvariable=self.percent, width=16, style='Page.TLabel').grid(
+        ttk.Label(actions, textvariable=self.percent, width=16, style='Progress.Page.TLabel').grid(
             row=0, column=3, padx=(17, 5), sticky='w')
         self.bar = ttk.Progressbar(actions, maximum=100)
         self.bar.grid(row=0, column=4, sticky='ew')
         self.status = tk.StringVar(value='準備就緒')
-        ttk.Label(main, textvariable=self.status, style='Sub.Page.TLabel', wraplength=850).grid(
-            row=7, sticky='w', pady=(1, 5))
+        self.status_label = ttk.Label(main, textvariable=self.status, style='Sub.Page.TLabel',
+                                      wraplength=850)
+        self.status_label.grid(row=7, sticky='w', pady=(1, 5))
 
         log_card = ttk.Frame(main, padding=(10, 6), style='Panel.TFrame')
         log_card.grid(row=8, sticky='nsew')
@@ -206,12 +217,15 @@ class App(tk.Tk):
         self.log = ScrolledText(log_card, height=4, wrap='word', font=('Consolas', 10),
                                 relief='flat', padx=5, pady=4, background='#f7faff',
                                 foreground=ink, state='disabled')
+        for tag, color in (('progress', '#0759c4'), ('error', '#b4232c'),
+                           ('warning', '#865700'), ('success', '#147745')):
+            self.log.tag_configure(tag, foreground=color)
         self.log.grid(row=1, sticky='nsew', pady=(4, 0))
-        ttk.Label(main, text='製作人：Skypray Huang  ·  v1.5.0', style='Sub.Page.TLabel').grid(
+        ttk.Label(main, text='製作人：Skypray Huang  ·  v1.5.1', style='Sub.Page.TLabel').grid(
             row=9, sticky='e', pady=(6, 0))
         self.after(100, self.poll)
 
-    def radio_row(self, frame, label, options, default):
+    def radio_row(self, frame, label, options, default, *, disabled=()):
         var = tk.StringVar(value=default)
         ttk.Label(frame, text=label, style='Field.TLabel', width=12).grid(
             row=0, column=0, sticky='w')
@@ -219,8 +233,10 @@ class App(tk.Tk):
         row.grid(row=0, column=1, sticky='ew')
         for column, (text, value) in enumerate(options):
             row.columnconfigure(column, weight=1)
-            ttk.Radiobutton(row, text=text, value=value, variable=var).grid(
-                row=0, column=column, sticky='w', padx=(0, 8))
+            button = ttk.Radiobutton(row, text=text, value=value, variable=var)
+            if value in disabled:
+                button.state(['disabled'])
+            button.grid(row=0, column=column, sticky='w', padx=(0, 8))
         return var
 
 
@@ -234,12 +250,6 @@ class App(tk.Tk):
                 if value:
                     var.set(value)
             ttk.Button(frame, text='選擇', command=choose).grid(row=row, column=2, padx=(8, 0))
-        return var
-
-    def choice(self, frame, row, label, options, default):
-        var = tk.StringVar(value=default)
-        ttk.Label(frame, text=label).grid(row=row, column=0, sticky='w', pady=5)
-        ttk.Combobox(frame, values=options, textvariable=var, state='readonly').grid(row=row, column=1, sticky='ew', pady=5)
         return var
 
     def time_field(self, frame, column, label):
@@ -270,9 +280,16 @@ class App(tk.Tk):
     def sync_crop(self, *_):
         self.crop.set(any(value.get().strip() for value in (*self.start, *self.end)))
 
-    def append(self, line):
+    def append(self, line, tag=''):
+        if not tag:
+            if line.startswith('ERROR:'):
+                tag = 'error'
+            elif line.startswith('WARNING:'):
+                tag = 'warning'
+            elif line.startswith('FILE:'):
+                tag = 'success'
         self.log.configure(state='normal')
-        self.log.insert('end', f'[{time.strftime("%H:%M:%S")}] {line}\n')
+        self.log.insert('end', f'[{time.strftime("%H:%M:%S")}] {line}\n', tag)
         if int(self.log.index('end-1c').split('.')[0]) > 1500:
             self.log.delete('1.0', '300.0')
         self.log.see('end')
@@ -287,9 +304,9 @@ class App(tk.Tk):
             deno = binary('deno')
             if not ffmpeg or not deno:
                 raise ValueError('內嵌的 FFmpeg 或 Deno 無法載入，請重新取得完整程式。')
-            cookie = self.cookie.get().strip()
-            if cookie and not Path(cookie).is_file():
-                raise ValueError('找不到 Cookie 檔案。')
+            cookie = self.cookie.get().strip() if self.use_cookie_file.get() else ''
+            if self.use_cookie_file.get() and not Path(cookie).is_file():
+                raise ValueError('請選擇有效的 cookies.txt 檔案。')
             out = self.output.get().strip()
             if not out:
                 raise ValueError('請選擇儲存資料夾。')
@@ -301,7 +318,7 @@ class App(tk.Tk):
             for url in urls:
                 args = arguments(url, self.quality.get(), self.mode.get(),
                     start, end, self.precise.get(), out, str(Path(ffmpeg).parent), cookie,
-                    '' if self.browser.get() == '不使用' else self.browser.get(),
+                    self.browser.get(),
                     self.fallback.get(), deno, self.playlist.get())
                 args[args.index('-o') + 1] = output_template(
                     url, self.playlist.get(), uuid.uuid4().hex[:10])
@@ -315,9 +332,10 @@ class App(tk.Tk):
         self.go.configure(state='disabled')
         self.cancel.configure(state='normal')
         self.set_progress(0)
+        self.cookie_hint_shown = False
         self.batch_prefix = f'共 {len(commands)} 個連結'
         self.urls.configure(state='disabled')
-        self.status.set(self.batch_prefix + '；正在取得影片資訊…')
+        self.set_status(self.batch_prefix + '；正在取得影片資訊…', 'Progress')
         self.append(f'開始批次：{len(commands)} 個連結（已移除完全相同的重複連結）。各連結依序下載；百分比為目前串流進度。')
         threading.Thread(target=self.run, args=(commands,), daemon=True).start()
 
@@ -395,13 +413,20 @@ class App(tk.Tk):
     def stop(self):
         self.stop_event.set()
         self.cancel.configure(state='disabled')
-        self.status.set('正在取消…')
+        self.set_status('正在取消…')
         threading.Thread(target=self.kill, daemon=True).start()
 
-    def set_progress(self, percent):
+    def set_status(self, message, tone='Sub'):
+        self.status.set(message)
+        self.status_label.configure(style=f'{tone}.Page.TLabel')
+
+    def set_progress(self, percent, *, log=False):
         percent = max(0, min(100, percent))
+        previous = float(self.bar['value'])
         self.bar['value'] = percent
-        self.percent.set(f'目前串流 {percent:.0f}%')
+        self.percent.set(f'目前串流 {int(percent)}%')
+        if log and (int(percent // 10) > int(previous // 10) or previous == 100 > percent):
+            self.append(f'下載進度：目前串流 {int(percent)}%', 'progress')
 
     def poll(self):
         while True:
@@ -415,33 +440,44 @@ class App(tk.Tk):
                 self.go.configure(state='normal')
                 self.cancel.configure(state='disabled')
                 if self.stop_event.is_set():
-                    self.status.set(f'已取消；已產生 {value["files"]} 個檔案。下載資料夾可能留有未完成檔案。')
+                    self.set_status(f'已取消；已產生 {value["files"]} 個檔案。下載資料夾可能留有未完成檔案。')
                 elif value['failed'] == 0:
                     self.set_progress(100)
-                    self.status.set(f'批次完成：{value["completed"]}/{value["total"]} 個連結成功，已產生 {value["files"]} 個檔案。路徑見 FILE 訊息。')
+                    self.set_status(f'批次完成：{value["completed"]}/{value["total"]} 個連結成功，已產生 {value["files"]} 個檔案。路徑見 FILE 訊息。', 'Success')
                 else:
                     self.set_progress(0)
-                    self.status.set(f'批次結束：{value["completed"]} 個連結成功、{value["failed"]} 個未完整成功，已產生 {value["files"]} 個檔案。請查看 ERROR。')
-                self.append(self.status.get())
+                    self.set_status(f'批次結束：{value["completed"]} 個連結成功、{value["failed"]} 個未完整成功，已產生 {value["files"]} 個檔案。請查看紅色錯誤。', 'Error')
+                if self.stop_event.is_set():
+                    self.append(self.status.get())
+                else:
+                    self.append(self.status.get(), 'error' if value['failed'] else 'success')
             elif kind == 'link':
                 self.batch_prefix = f'連結 {value[0]}/{value[1]}'
+                self.cookie_hint_shown = False
                 self.set_progress(0)
-                self.status.set(self.batch_prefix + '；正在取得影片資訊…')
+                self.set_status(self.batch_prefix + '；正在取得影片資訊…', 'Progress')
             elif value.startswith('PROGRESS:'):
                 match = re.search(r'(\d+(?:\.\d+)?)%', value)
                 if match:
-                    self.set_progress(float(match.group(1)))
+                    self.set_progress(float(match.group(1)), log=True)
             elif value.startswith('PROCESS:started:') and not value.endswith(':MoveFiles'):
-                self.status.set(self.batch_prefix + '；正在處理影音…')
+                self.set_status(self.batch_prefix + '；正在處理影音…', 'Progress')
             elif not value.startswith('PROCESS:'):
                 self.append(value)
-                if value.startswith('ITEM:'):
+                if value.startswith('ERROR:'):
+                    self.set_status(self.batch_prefix + '；下載失敗，請查看紅色錯誤。', 'Error')
+                    if not self.cookie_hint_shown and any(
+                            marker in value.lower() for marker in (
+                                'cookie', 'dpapi', 'sign in to confirm')):
+                        self.append('登入提示：建議在 Firefox 登入 YouTube，再將「登入 Cookie」選為 Firefox。', 'error')
+                        self.cookie_hint_shown = True
+                elif value.startswith('ITEM:'):
                     self.set_progress(0)
-                    self.status.set(self.batch_prefix + '；正在下載：' + value[5:])
+                    self.set_status(self.batch_prefix + '；正在下載：' + value[5:], 'Progress')
                 elif value.startswith('[SkyTubeMP4] '):
-                    self.status.set(self.batch_prefix + ' · ' + value.removeprefix('[SkyTubeMP4] '))
+                    self.set_status(self.batch_prefix + ' · ' + value.removeprefix('[SkyTubeMP4] '), 'Progress')
                 elif value.startswith(('[Merger]', '[ExtractAudio]', '[VideoRemuxer]', '[VideoConvertor]')):
-                    self.status.set(self.batch_prefix + '；正在處理影音，請稍候…')
+                    self.set_status(self.batch_prefix + '；正在處理影音，請稍候…', 'Progress')
         self.after(100, self.poll)
 
     def open_folder(self):
